@@ -49,7 +49,7 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
     var expected = files.length
     var received = 0
     var lastTimestamp = 0L
-    val speedFactor = 10000
+    val speedFactor = current.configuration.getInt("speedFactor").get
 
     val scheduler = context.system.scheduler
 
@@ -80,7 +80,7 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
 
         case Continue if received < expected =>
             // wait until messageMap is fully populated
-            scheduler.scheduleOnce(Duration(10, MILLISECONDS), self, Continue)
+            self ! Continue
 
         case Continue if received == expected =>
             val (reader, message) = messageMap.minBy(_._2.timestamp)
@@ -91,22 +91,25 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
     }
 
     def publish(message: Message) = {
-        log.info(message.toString)
-        // KafkaBroker.send(message.topic, s"""{ "ts": ${message.timestamp}, "value": ${message.value} }""")
+        // log.info(message.toString)
+        KafkaBroker.send(message.topic, s"""{ "ts": ${message.timestamp}, "value": ${message.value} }""")
     }
 
     def hold(timestamp: Long) = {
-        if (lastTimestamp != 0) {
-            val delta = timestamp - lastTimestamp
-            val sleep = Duration(delta / speedFactor, MILLISECONDS)
-            lastTimestamp = timestamp
-            scheduler.scheduleOnce(sleep, self, Continue)
-        } else {
+        // first time
+        if (lastTimestamp == 0) {
             lastTimestamp = timestamp
             self ! Continue
         }
+        else {
+            val delta = timestamp - lastTimestamp
+            val duration = delta / speedFactor
+            // log.info(s"duration: $duration")
+            val sleep = Duration(duration, MILLISECONDS)
+            lastTimestamp = timestamp
+            scheduler.scheduleOnce(sleep, self, Continue)
+        }
     }
-
 }
 
 object Clock {

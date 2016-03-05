@@ -1,4 +1,4 @@
-name := """pg-ds"""
+name := """data-player"""
 
 version := "1.0-SNAPSHOT"
 
