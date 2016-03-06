@@ -1,7 +1,6 @@
 package greendash.dataplayer
 
 import akka.actor.{Props, Actor, ActorRef}
-import greendash.dataplayer.Clock.{EmptyMessage, Message}
 import org.joda.time.format.DateTimeFormat
 
 import scala.io.Source
@@ -46,6 +45,8 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
 
 object Reader {
     def props(fname: String, clock: ActorRef) = Props(new Reader(fname, clock))
+    class EmptyMessage()
+    case class Message(topic: String, timestamp: Long, value: Double) extends EmptyMessage
     case object NextLine
 }
 

@@ -4,7 +4,7 @@ import java.util.Calendar
 
 import akka.actor._
 import com.typesafe.config.ConfigFactory
-import greendash.dataplayer.Reader.NextLine
+import greendash.dataplayer.Reader.{Message, NextLine}
 
 import scala.collection.mutable
 
@@ -81,6 +81,8 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
             lastTimestamp = timestamp
             Thread.sleep(0, duration.toInt)
             self ! Continue
+
+            // scheduler is not accurate enough for this purpose, so we're using Thread.sleep instead
             // val sleep = Duration(duration.toLong, NANOSECONDS)
             // scheduler.scheduleOnce(sleep, self, Continue)
         }
@@ -89,8 +91,6 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
 
 object Clock {
     def props(files: List[String]) = Props(new Clock(files))
-    class EmptyMessage()
-    case class Message(topic: String, timestamp: Long, value: Double) extends EmptyMessage
     case object Continue
 }
 
