@@ -7,9 +7,9 @@ import com.typesafe.config.ConfigFactory
 import greendash.dataplayer.Clock.Continue
 
 object ApplicationMain extends App {
-    val system = ActorSystem("MyActorSystem")
+    val system = ActorSystem("DataPlayerSystem")
 
-    val dir = ConfigFactory.load().getString("fileFolder")
+    val dir = ConfigFactory.load().getString("file.folder")
     val flist = getListOfFiles(dir)
 
     val clock = system.actorOf(Clock.props(flist))

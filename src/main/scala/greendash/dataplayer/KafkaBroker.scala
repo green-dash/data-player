@@ -11,7 +11,7 @@ object KafkaBroker {
 
     val props = new Properties()
 
-    val config = ConfigFactory.load().getConfig("kafkaBroker")
+    val config = ConfigFactory.load().getConfig("kafka.broker")
 
     val es = config.entrySet.toSet
     es.foreach { s =>

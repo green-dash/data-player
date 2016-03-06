@@ -7,8 +7,6 @@ import com.typesafe.config.ConfigFactory
 import greendash.dataplayer.Reader.NextLine
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 
 class Clock(files: List[String]) extends Actor with ActorLogging {
@@ -24,7 +22,7 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
     var expected = files.length
     var received = 0
     var lastTimestamp = 0L
-    val speedFactor = ConfigFactory.load().getInt("speedFactor")
+    val speedFactor = ConfigFactory.load().getInt("speed.factor")
 
     val scheduler = context.system.scheduler
 
@@ -72,7 +70,7 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
 
     def hold(timestamp: Long) = {
         // first time
-        if (lastTimestamp == 0) {
+        if (lastTimestamp == 0 || speedFactor == 0) {
             lastTimestamp = timestamp
             self ! Continue
         }
