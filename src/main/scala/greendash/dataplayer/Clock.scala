@@ -16,6 +16,10 @@ class Clock() extends Actor with ActorLogging {
 
     import Clock._
 
+    val config = ConfigFactory.load()
+    val speedFactor = config.getInt("speed.factor")
+    val topic = config.getString("kafka.publisher.topic")
+
     val messageMap = mutable.Map[ActorRef, Message]()
 
     val runStart = Calendar.getInstance.getTimeInMillis
@@ -23,7 +27,6 @@ class Clock() extends Actor with ActorLogging {
     var expected = 0
     var received = 0
     var lastTimestamp = 0L
-    val speedFactor = ConfigFactory.load().getInt("speed.factor")
     val scheduler = context.system.scheduler
 
     override def receive = {
@@ -67,7 +70,7 @@ class Clock() extends Actor with ActorLogging {
 
     def start() = {
         log.info("run started")
-        val dir = ConfigFactory.load().getString("file.folder")
+        val dir = ConfigFactory.load().getString("data.folder")
         val files = getListOfFiles(dir)
 
         expected = files.length
@@ -83,7 +86,7 @@ class Clock() extends Actor with ActorLogging {
 
     def publish(message: Message) = {
         // log.info(message.toString)
-        KafkaBroker.send(message.topic, s"""{ "ts": ${message.timestamp}, "value": ${message.value} }""")
+        KafkaBroker.send(topic, message.toJson)
     }
 
     def hold(timestamp: Long) = {

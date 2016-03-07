@@ -10,9 +10,10 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
 
     val bufferedSource = Source.fromFile(fname)
     val lines = bufferedSource.getLines()
-    val topic = topicName(fname)
 
     val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+    val tagDetails = MetaDataReader.tagsMap(toTag(fname))
 
     clock ! nextLine()
 
@@ -28,7 +29,7 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
             val dateTime = fmt.parseDateTime(dt.replaceAll("\"", ""))
             val ts = dateTime.getMillis
 
-            Message(topic, ts, value)
+            Message(tagDetails, ts, value)
         }
         else {
             bufferedSource.close()
@@ -38,10 +39,12 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
         }
     }
 
-    def topicName(s: String) = s.replaceAll(".*/", "").replaceFirst("\\.csv$", "").replaceAll("\\W", "-")
-
     override def receive = {
         case NextLine => clock ! nextLine()
+    }
+
+    def toTag(fname: String) = {
+        fname.replaceAll(".*/", "").replaceAll("\\.csv", "")
     }
 
 }
@@ -49,9 +52,12 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
 object Reader {
     def props(fname: String, clock: ActorRef) = Props(new Reader(fname, clock))
     class EmptyMessage()
-    case class Message(topic: String,
+    case class Message(tagDetails: TagDetails,
                        timestamp: Long,
-                       value: Double) extends EmptyMessage
+                       value: Double) extends EmptyMessage {
+        def toJson =
+            s"""{ "sensor": ${tagDetails.toJson}, "timestamp": $timestamp, "value": $value } """.stripMargin
+    }
     case object NextLine
 }
 
