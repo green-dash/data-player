@@ -1,4 +1,4 @@
-name := """dp"""
+name := """data-player"""
 
 version := "1.0"
 
