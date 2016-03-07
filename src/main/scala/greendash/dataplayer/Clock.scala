@@ -1,5 +1,6 @@
 package greendash.dataplayer
 
+import java.io.File
 import java.util.Calendar
 
 import akka.actor._
@@ -11,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 
-class Clock(files: List[String]) extends Actor with ActorLogging {
+class Clock() extends Actor with ActorLogging {
 
     import Clock._
 
@@ -19,19 +20,11 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
 
     val runStart = Calendar.getInstance.getTimeInMillis
 
-    log.info("run started")
-
-    var expected = files.length
+    var expected = 0
     var received = 0
     var lastTimestamp = 0L
     val speedFactor = ConfigFactory.load().getInt("speed.factor")
-
     val scheduler = context.system.scheduler
-
-    files.foreach { fname =>
-        val ref = context.actorOf(Reader.props(fname, self))
-        context.watch(ref)
-    }
 
     override def receive = {
 
@@ -46,7 +39,12 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
                 log.info("all readers finished: stopping clock")
                 val t = Calendar.getInstance.getTimeInMillis - runStart
                 log.info("run took {} milliseconds", t.toString)
-                context.system.shutdown()
+
+                if (ConfigFactory.load().getBoolean("stream.repeat")) {
+                    start()
+                } else {
+                    context.system.shutdown()
+                }
             }
 
         case Continue if received > expected =>
@@ -63,6 +61,24 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
             received = received - 1
             reader ! NextLine
             hold(message.timestamp)
+
+        case Start => start()
+    }
+
+    def start() = {
+        log.info("run started")
+        val dir = ConfigFactory.load().getString("file.folder")
+        val files = getListOfFiles(dir)
+
+        expected = files.length
+        received = 0
+        lastTimestamp = 0L
+
+        files.foreach { fname =>
+            val ref = context.actorOf(Reader.props(fname, self))
+            context.watch(ref)
+        }
+        self ! Continue
     }
 
     def publish(message: Message) = {
@@ -80,20 +96,22 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
             val delta = timestamp - lastTimestamp
             lastTimestamp = timestamp
 
-            // val duration = (delta.toDouble / speedFactor) * 1000
-            // log.info(s"duration: $duration")
-            // Thread.sleep(0, duration.toInt)
-            // self ! Continue
-
             val duration = delta / speedFactor
             val sleep = Duration(duration, MILLISECONDS)
             scheduler.scheduleOnce(sleep, self, Continue)
         }
     }
+
+    def getListOfFiles(dir: String):List[String] = {
+        val d = new File(dir)
+        d.listFiles.filter(_.isFile).map(_.getCanonicalPath).toList
+    }
+
 }
 
 object Clock {
-    def props(files: List[String]) = Props(new Clock(files))
+    def props() = Props(new Clock())
     case object Continue
+    case object Start
 }
 
