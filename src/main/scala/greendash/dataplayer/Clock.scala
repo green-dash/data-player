@@ -7,6 +7,8 @@ import com.typesafe.config.ConfigFactory
 import greendash.dataplayer.Reader.{Message, NextLine}
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 
 class Clock(files: List[String]) extends Actor with ActorLogging {
@@ -76,15 +78,16 @@ class Clock(files: List[String]) extends Actor with ActorLogging {
         }
         else {
             val delta = timestamp - lastTimestamp
-            val duration = (delta.toDouble / speedFactor) * 1000
-            // log.info(s"duration: $duration")
             lastTimestamp = timestamp
-            Thread.sleep(0, duration.toInt)
-            self ! Continue
 
-            // scheduler is not accurate enough for this purpose, so we're using Thread.sleep instead
-            // val sleep = Duration(duration.toLong, NANOSECONDS)
-            // scheduler.scheduleOnce(sleep, self, Continue)
+            // val duration = (delta.toDouble / speedFactor) * 1000
+            // log.info(s"duration: $duration")
+            // Thread.sleep(0, duration.toInt)
+            // self ! Continue
+
+            val duration = delta / speedFactor
+            val sleep = Duration(duration, MILLISECONDS)
+            scheduler.scheduleOnce(sleep, self, Continue)
         }
     }
 }

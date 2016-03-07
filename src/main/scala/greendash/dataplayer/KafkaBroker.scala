@@ -16,11 +16,11 @@ object KafkaBroker {
     val es = config.entrySet.toSet
     es.foreach { s =>
         val k: String = s.getKey
-        val v = s.getValue.unwrapped().asInstanceOf[String]
+        val v = s.getValue.unwrapped.asInstanceOf[String]
         props.put(k, v)
     }
 
-    val producer = new KafkaProducer[String, String](props)
+    lazy val producer = new KafkaProducer[String, String](props)
 
     def send(topic: String, message: String) = producer.send(new ProducerRecord[String, String](topic, message))
 

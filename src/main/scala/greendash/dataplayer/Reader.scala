@@ -20,11 +20,13 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
         if (lines.hasNext) {
             val line = lines.next()
             val Array(dt, v) = line.split(",")
-            val dateTime = fmt.parseDateTime(dt.replaceAll("\"", ""))
-            val ts = dateTime.getMillis
 
+            // todo: send no message when value is empty
             val vw = v.replaceAll("\"", "")
             val value = if (vw.isEmpty) Double.NaN else vw.toDouble
+
+            val dateTime = fmt.parseDateTime(dt.replaceAll("\"", ""))
+            val ts = dateTime.getMillis
 
             Message(topic, ts, value)
         }
@@ -41,12 +43,15 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
     override def receive = {
         case NextLine => clock ! nextLine()
     }
+
 }
 
 object Reader {
     def props(fname: String, clock: ActorRef) = Props(new Reader(fname, clock))
     class EmptyMessage()
-    case class Message(topic: String, timestamp: Long, value: Double) extends EmptyMessage
+    case class Message(topic: String,
+                       timestamp: Long,
+                       value: Double) extends EmptyMessage
     case object NextLine
 }
 
