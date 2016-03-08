@@ -5,7 +5,7 @@ import java.util.Calendar
 
 import akka.actor._
 import com.typesafe.config.ConfigFactory
-import greendash.dataplayer.Reader.{Message, NextLine}
+import greendash.dataplayer.Reader.{EmptyMessage, Message, NextLine}
 import greendash.dataplayer.model.{FileInfo, MetaDataReader}
 
 import scala.collection.mutable
@@ -67,6 +67,9 @@ class Clock() extends Actor with ActorLogging {
             hold(message.timestamp)
 
         case Start => start()
+
+        case _: EmptyMessage =>
+            sender ! NextLine
     }
 
     def start() = {
@@ -110,12 +113,11 @@ class Clock() extends Actor with ActorLogging {
     }
 
     def fileInfo(fname: String): Option[FileInfo] = {
-        val tag = toTag(fname)
-        MetaDataReader.tagsMap.get(tag) match {
+        MetaDataReader.tagsMap get toTag(fname) match {
             case Some(tagInfo) =>
                 Some(FileInfo(fname, tagInfo))
             case None =>
-                log.error(s"Unable to find tag information for file $fname. Ignoring.")
+                log error s"Unable to find tag information for file $fname. Ignoring."
                 None
         }
     }

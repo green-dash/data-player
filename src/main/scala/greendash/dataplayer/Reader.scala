@@ -16,26 +16,33 @@ class Reader(fileInfo: FileInfo, clock: ActorRef) extends Actor with ActorLoggin
 
     clock ! nextLine()
 
-    def nextLine() = {
+    def nextLine(): EmptyMessage = {
         if (lines.hasNext) {
             val line = lines.next()
-            val Array(dt, v) = line.split(",")
-
-            // todo: send no message when value is empty
-            val vw = v.replaceAll("\"", "")
-            val value = if (vw.isEmpty) Double.NaN else vw.toDouble
-
-            val dateTime = fmt.parseDateTime(dt.replaceAll("\"", ""))
-            val ts = dateTime.getMillis
-
-            Message(fileInfo.tag, ts, value)
+            parseLine(line)
         }
         else {
-            bufferedSource.close()
-            context.stop(self)
-            // need to return something to make the compiler happy
-            new EmptyMessage
+            endOfFile()
         }
+    }
+
+    def parseLine(line: String) = {
+        val Array(dt, v) = line.split(",").map(_.trim.replaceAll("\"", ""))
+        if (v.isEmpty) {
+            new EmptyMessage
+        } else {
+            val value = v.toDouble
+            val dateTime = fmt.parseDateTime(dt)
+            val ts = dateTime.getMillis
+            Message(fileInfo.tag, ts, value)
+        }
+    }
+
+    def endOfFile() = {
+        log.info(s"$fileInfo: reader finished")
+        bufferedSource.close()
+        context.stop(self)
+        new EmptyMessage // need to return something to make the compiler happy
     }
 
     override def receive = {
