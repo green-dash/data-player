@@ -1,19 +1,18 @@
 package greendash.dataplayer
 
-import akka.actor.{Props, Actor, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import greendash.dataplayer.model.{FileInfo, TagDetails}
 import org.joda.time.format.DateTimeFormat
 
 import scala.io.Source
 
-class Reader(fname: String, clock: ActorRef) extends Actor {
+class Reader(fileInfo: FileInfo, clock: ActorRef) extends Actor with ActorLogging {
     import Reader._
 
-    val bufferedSource = Source.fromFile(fname)
+    val bufferedSource = Source.fromFile(fileInfo.fileName)
     val lines = bufferedSource.getLines()
 
     val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-
-    val tagDetails = MetaDataReader.tagsMap(toTag(fname))
 
     clock ! nextLine()
 
@@ -29,7 +28,7 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
             val dateTime = fmt.parseDateTime(dt.replaceAll("\"", ""))
             val ts = dateTime.getMillis
 
-            Message(tagDetails, ts, value)
+            Message(fileInfo.tag, ts, value)
         }
         else {
             bufferedSource.close()
@@ -43,20 +42,15 @@ class Reader(fname: String, clock: ActorRef) extends Actor {
         case NextLine => clock ! nextLine()
     }
 
-    def toTag(fname: String) = {
-        fname.replaceAll(".*/", "").replaceAll("\\.csv", "")
-    }
-
 }
 
 object Reader {
-    def props(fname: String, clock: ActorRef) = Props(new Reader(fname, clock))
+    def props(fileInfo: FileInfo, clock: ActorRef) = Props(new Reader(fileInfo, clock))
     class EmptyMessage()
     case class Message(tagDetails: TagDetails,
                        timestamp: Long,
                        value: Double) extends EmptyMessage {
-        def toJson =
-            s"""{ "sensor": ${tagDetails.toJson}, "timestamp": $timestamp, "value": $value } """.stripMargin
+        def toJson = s"""{ ${tagDetails.toJson}, "timestamp": $timestamp, "value": $value }"""
     }
     case object NextLine
 }

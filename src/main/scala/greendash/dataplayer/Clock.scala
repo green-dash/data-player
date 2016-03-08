@@ -6,6 +6,7 @@ import java.util.Calendar
 import akka.actor._
 import com.typesafe.config.ConfigFactory
 import greendash.dataplayer.Reader.{Message, NextLine}
+import greendash.dataplayer.model.{FileInfo, MetaDataReader}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -70,15 +71,13 @@ class Clock() extends Actor with ActorLogging {
 
     def start() = {
         log.info("run started")
-        val dir = ConfigFactory.load().getString("data.folder")
-        val files = getListOfFiles(dir)
 
-        expected = files.length
+        expected = fileDetails.length
         received = 0
         lastTimestamp = 0L
 
-        files.foreach { fname =>
-            val ref = context.actorOf(Reader.props(fname, self))
+        fileDetails.foreach { fi =>
+            val ref = context.actorOf(Reader.props(fi, self))
             context.watch(ref)
         }
         self ! Continue
@@ -105,9 +104,30 @@ class Clock() extends Actor with ActorLogging {
         }
     }
 
-    def getListOfFiles(dir: String):List[String] = {
+
+    val fileDetails: List[FileInfo] = {
+        fileList flatMap { fname => fileInfo(fname) }
+    }
+
+    def fileInfo(fname: String): Option[FileInfo] = {
+        val tag = toTag(fname)
+        MetaDataReader.tagsMap.get(tag) match {
+            case Some(tagInfo) =>
+                Some(FileInfo(fname, tagInfo))
+            case None =>
+                log.error(s"Unable to find tag information for file $fname. Ignoring.")
+                None
+        }
+    }
+
+    def fileList = {
+        val dir = ConfigFactory.load().getString("data.folder")
         val d = new File(dir)
         d.listFiles.filter(_.isFile).map(_.getCanonicalPath).toList
+    }
+
+    def toTag(fname: String) = {
+        fname.replaceAll(".*/", "").replaceAll("\\.csv", "")
     }
 
 }

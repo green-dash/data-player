@@ -1,4 +1,4 @@
-package greendash.dataplayer
+package greendash.dataplayer.model
 
 import com.typesafe.config.ConfigFactory
 
@@ -19,8 +19,4 @@ object MetaDataReader {
     bufferedSource.close
 }
 
-case class TagDetails(tagName: String, measurementType: String, tagId: String, tagType: String, train: String, processBlock: String) {
-    def toJson =
-        s"""{ "tagName": "$tagName", "measurementType": "$measurementType", "tagId": "$tagId", "tagType": "$tagType", "train": "$train", "processBlock": "$processBlock" }""".stripMargin
-}
 
