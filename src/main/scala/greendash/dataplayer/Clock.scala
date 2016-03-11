@@ -18,7 +18,7 @@ class Clock() extends Actor with ActorLogging {
     import Clock._
 
     val config = ConfigFactory.load()
-    val speedFactor = config.getInt("speed.factor")
+    var speedFactor = config.getInt("speed.factor")
     val topic = config.getString("kafka.publisher.topic")
 
     val messageMap = mutable.Map[ActorRef, Message]()
@@ -70,6 +70,11 @@ class Clock() extends Actor with ActorLogging {
 
         case _: EmptyMessage =>
             sender ! NextLine
+
+        case AdjustSpeed(i) =>
+            log.info("setting speedFactor to: {}", i)
+            speedFactor = i
+
     }
 
     def start() = {
@@ -92,7 +97,7 @@ class Clock() extends Actor with ActorLogging {
     }
 
     def hold(timestamp: Long) = {
-        // first time
+        // first time or as-fast-as-possible
         if (lastTimestamp == 0 || speedFactor == 0) {
             lastTimestamp = timestamp
             self ! Continue
@@ -138,5 +143,6 @@ object Clock {
     def props() = Props(new Clock())
     case object Continue
     case object Start
+    case class AdjustSpeed(speed: Int)
 }
 

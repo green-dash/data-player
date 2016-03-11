@@ -11,6 +11,8 @@ libraryDependencies ++= Seq(
     "org.apache.kafka" % "kafka-clients" % "0.8.2.1",
     "ch.qos.logback" % "logback-classic" % "1.1.3",
 
+    "io.spray" %% "spray-can" % "1.3.3",
+
     "com.typesafe.akka" %% "akka-testkit" % "2.3.11" % "test",
     "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
