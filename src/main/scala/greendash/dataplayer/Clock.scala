@@ -75,6 +75,11 @@ class Clock() extends Actor with ActorLogging {
             log.info("setting speedFactor to: {}", i)
             speedFactor = i
 
+        case f@ForwardSensorList(target, entity) =>
+            val tdl = "[" + fileDetails.map(t => s"{ ${t.tag.toJson} }").mkString(",") + "]"
+            log.info(tdl)
+            f.forward(tdl)
+
     }
 
     def start() = {

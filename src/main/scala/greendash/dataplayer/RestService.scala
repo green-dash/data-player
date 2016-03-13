@@ -31,9 +31,24 @@ class RestService(clock: ActorRef) extends Actor {
         case HttpRequest(GET, Uri.Path("/speed"), _, entity, _) =>
             sender ! HttpResponse(entity = speedFactor.toString)
 
+        case HttpRequest(GET, Uri.Path("/sensorList"), _, entity: HttpEntity, _) =>
+            val target = sender
+            clock ! ForwardSensorList(target, entity)
+
+        case HttpRequest(GET, Uri.Path("/state"), _, entity: HttpEntity, _) =>
+            val target = sender
+            clock ! ForwardState(target, entity)
+
     }
 }
 
 object RestService {
     def props(clock: ActorRef) = Props(new RestService(clock))
 }
+
+class ForwardHttpResponse(target: ActorRef, entity: HttpEntity) {
+    def forward(answer: String) = target ! HttpResponse(entity = answer)
+}
+
+case class ForwardSensorList(target: ActorRef, entity: HttpEntity) extends ForwardHttpResponse(target, entity)
+case class ForwardState(target: ActorRef, entity: HttpEntity) extends ForwardHttpResponse(target, entity)
