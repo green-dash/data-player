@@ -90,8 +90,9 @@ class Clock() extends Actor with ActorLogging {
         lastTimestamp = 0L
 
         fileDetails.foreach { fi =>
-            val ref = context.actorOf(Reader.props(fi, self))
-            context.watch(ref)
+            val reader = context.actorOf(Reader.props(fi, self))
+            context.watch(reader)
+            reader ! NextLine
         }
         self ! Continue
     }

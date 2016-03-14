@@ -6,15 +6,13 @@ import org.joda.time.format.DateTimeFormat
 
 import scala.io.Source
 
-class Reader(fileInfo: FileInfo, clock: ActorRef) extends Actor with ActorLogging {
+class Reader(fileInfo: FileInfo, supervisor: ActorRef) extends Actor with ActorLogging {
     import Reader._
 
     val bufferedSource = Source.fromFile(fileInfo.fileName)
     val lines = bufferedSource.getLines()
 
     val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-
-    clock ! nextLine()
 
     def nextLine(): EmptyMessage = {
         if (lines.hasNext) {
@@ -46,13 +44,13 @@ class Reader(fileInfo: FileInfo, clock: ActorRef) extends Actor with ActorLoggin
     }
 
     override def receive = {
-        case NextLine => clock ! nextLine()
+        case NextLine => supervisor ! nextLine()
     }
 
 }
 
 object Reader {
-    def props(fileInfo: FileInfo, clock: ActorRef) = Props(new Reader(fileInfo, clock))
+    def props(fileInfo: FileInfo, supervisor: ActorRef) = Props(new Reader(fileInfo, supervisor))
     class EmptyMessage()
     case class Message(tagDetails: TagDetails,
                        timestamp: Long,
