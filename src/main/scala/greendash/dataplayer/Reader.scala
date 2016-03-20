@@ -24,6 +24,10 @@ class Reader(fileInfo: FileInfo, supervisor: ActorRef) extends Actor with ActorL
         }
     }
 
+    /*
+    Parse the current line.
+    When the line does not contain a value, then return an EmptyMessage, which will invoke reading the next line.
+     */
     def parseLine(line: String) = {
         val Array(dt, v) = line.split(",").map(_.trim.replaceAll("\"", ""))
         if (v.isEmpty) {

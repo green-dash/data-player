@@ -69,6 +69,7 @@ class Clock() extends Actor with ActorLogging {
         case Start => start()
 
         case _: EmptyMessage =>
+            /* empty message returned: there was no value in the line read, so continue */
             sender ! NextLine
 
         case AdjustSpeed(i) =>
